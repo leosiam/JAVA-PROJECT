@@ -1,0 +1,120 @@
+import java.sql.*;
+import javax.swing.*;
+
+public class LoginApp {
+    public static void main(String[] args) {
+        // สร้างฐานข้อมูลและตารางผู้ใช้
+        createDatabase();
+        
+        // สร้างหน้าต่างล็อกอิน
+        createLoginWindow();
+    }
+    
+    // ฟังก์ชันสร้างฐานข้อมูล SQLite และเพิ่มผู้ใช้ตัวอย่าง
+    public static void createDatabase() {
+        try {
+            // เชื่อมต่อกับฐานข้อมูล SQLite
+            Connection conn = DriverManager.getConnection("jdbc:sqlite:users.db");
+            Statement stmt = conn.createStatement();
+            
+            // สร้างตาราง users ถ้ายังไม่มี
+            String createTableSQL = "CREATE TABLE IF NOT EXISTS users ("
+                    + "username TEXT NOT NULL, "
+                    + "password TEXT NOT NULL)";
+            stmt.execute(createTableSQL);
+            
+            // เพิ่มผู้ใช้ตัวอย่าง (username: 'admin', password: '1234')
+            String insertUserSQL = "INSERT INTO users (username, password) VALUES ('admin', '1234')";
+            stmt.execute(insertUserSQL);
+            
+            stmt.close();
+            conn.close();
+        } catch (SQLException e) {
+            System.out.println("Error creating database: " + e.getMessage());
+        }
+    }
+    
+    // ฟังก์ชันสร้างหน้าต่างล็อกอิน
+    public static void createLoginWindow() {
+        JFrame frame = new JFrame("Login");
+        frame.setSize(300, 200);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        
+        JPanel panel = new JPanel();
+        frame.add(panel);
+        placeComponents(panel);
+        
+        frame.setVisible(true);
+    }
+    
+    // ฟังก์ชันสำหรับวางส่วนประกอบในหน้าต่างล็อกอิน
+    private static void placeComponents(JPanel panel) {
+        panel.setLayout(null);
+
+        JLabel userLabel = new JLabel("Username:");
+        userLabel.setBounds(10, 20, 80, 25);
+        panel.add(userLabel);
+
+        JTextField userText = new JTextField(20);
+        userText.setBounds(100, 20, 165, 25);
+        panel.add(userText);
+
+        JLabel passwordLabel = new JLabel("Password:");
+        passwordLabel.setBounds(10, 50, 80, 25);
+        panel.add(passwordLabel);
+
+        JPasswordField passwordText = new JPasswordField(20);
+        passwordText.setBounds(100, 50, 165, 25);
+        panel.add(passwordText);
+
+        JButton loginButton = new JButton("Login");
+        loginButton.setBounds(100, 90, 80, 25);
+        panel.add(loginButton);
+        
+        // ฟังก์ชันตรวจสอบการล็อกอินเมื่อคลิกปุ่ม
+        loginButton.addActionListener(e -> {
+            String username = userText.getText();
+            String password = new String(passwordText.getPassword());
+            
+            if (checkLogin(username, password)) {
+                JOptionPane.showMessageDialog(null, "Login สำเร็จ!");
+                openNewWindow();
+            } else {
+                JOptionPane.showMessageDialog(null, "user หรือ password ผิด");
+            }
+        });
+    }
+    
+    // ฟังก์ชันตรวจสอบการล็อกอินกับข้อมูลในฐานข้อมูล
+    public static boolean checkLogin(String username, String password) {
+        try {
+            Connection conn = DriverManager.getConnection("jdbc:sqlite:users.db");
+            String query = "SELECT * FROM users WHERE username = ? AND password = ?";
+            PreparedStatement pstmt = conn.prepareStatement(query);
+            pstmt.setString(1, username);
+            pstmt.setString(2, password);
+            ResultSet rs = pstmt.executeQuery();
+            
+            boolean loginSuccess = rs.next();
+            rs.close();
+            pstmt.close();
+            conn.close();
+            
+            return loginSuccess;
+        } catch (SQLException e) {
+            System.out.println("Error during login check: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    // ฟังก์ชันเปิดหน้าต่างใหม่หลังจากล็อกอินสำเร็จ
+    public static void openNewWindow() {
+        JFrame newFrame = new JFrame("Welcome");
+        newFrame.setSize(300, 200);
+        
+        JLabel label = new JLabel("Welcome to the next page!", SwingConstants.CENTER);
+        newFrame.add(label);
+        
+        newFrame.setVisible(true);
+    }
+}
